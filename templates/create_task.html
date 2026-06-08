@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="mb-4">创建上传任务</h2>
+
+<form method="POST" enctype="multipart/form-data">
+
+    <div class="mb-3">
+        <label>任务标题</label>
+        <input type="text" name="title" class="form-control" required>
+    </div>
+
+    <div class="mb-4">
+        <label>任务介绍</label>
+        <textarea name="description" class="form-control" rows="4"></textarea>
+    </div>
+
+    <div id="versions">
+        <div class="card mb-3 p-3">
+            <h5>版本</h5>
+
+            <input type="text" name="version_name" class="form-control mb-2" placeholder="版本号，例如 v1.0">
+
+            <textarea name="changelog" class="form-control mb-2" placeholder="更新说明"></textarea>
+
+            <input type="file" name="file" class="form-control">
+        </div>
+    </div>
+
+    <button type="button" class="btn btn-secondary mb-3" onclick="addVersion()">
+        添加更多版本
+    </button>
+
+    <br>
+
+    <button class="btn btn-success">
+        创建任务
+    </button>
+</form>
+
+<script>
+function addVersion() {
+    const html = `
+    <div class="card mb-3 p-3">
+        <h5>版本</h5>
+
+        <input type="text" name="version_name" class="form-control mb-2" placeholder="版本号">
+
+        <textarea name="changelog" class="form-control mb-2" placeholder="更新说明"></textarea>
+
+        <input type="file" name="file" class="form-control">
+    </div>
+    `;
+
+    document.getElementById('versions').insertAdjacentHTML('beforeend', html);
+}
+</script>
+
+{% endblock %}

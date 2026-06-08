@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h2 class="mb-2">{{ task.title }}</h2>
+        <p class="text-muted mb-0" style="white-space: pre-wrap;">{{ task.description }}</p>
+    </div>
+    <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}" onsubmit="return confirm('确定删除这个任务吗？对应文件和说明都会被永久删除。');">
+        <button class="btn btn-outline-danger">删除任务</button>
+    </form>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-5">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="mb-3">补充说明</h5>
+                <form method="POST" action="{{ url_for('add_task_description', task_id=task.id) }}">
+                    <textarea name="extra_description" class="form-control mb-3" rows="5" placeholder="输入要补充到该任务的新说明" required></textarea>
+                    <button class="btn btn-primary">保存说明</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="mb-3">继续上传文件</h5>
+                <form method="POST" action="{{ url_for('add_task_files', task_id=task.id) }}" enctype="multipart/form-data">
+                    <div id="new-versions">
+                        <div class="border rounded p-3 mb-3">
+                            <input type="text" name="version_name" class="form-control mb-2" placeholder="版本号，例如 v1.1">
+                            <textarea name="changelog" class="form-control mb-2" placeholder="文件说明或更新记录"></textarea>
+                            <input type="file" name="file" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-secondary me-2" onclick="addNewVersion()">添加更多文件</button>
+                    <button class="btn btn-success">上传文件</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3 class="mt-4">文件列表</h3>
+
+{% if versions %}
+    {% for version in versions %}
+    <div class="card mt-3">
+        <div class="card-body">
+            <h5>{{ version.version_name or '未命名版本' }}</h5>
+
+            <p style="white-space: pre-wrap;">{{ version.changelog }}</p>
+
+            <p>
+                文件：
+                {{ version.filename }}
+            </p>
+
+            <a href="{{ url_for('download', version_id=version.id) }}" class="btn btn-primary">
+                下载文件
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="alert alert-info mt-3">暂无文件，可以在上方继续上传。</div>
+{% endif %}
+
+<script>
+function addNewVersion() {
+    const html = `
+    <div class="border rounded p-3 mb-3">
+        <input type="text" name="version_name" class="form-control mb-2" placeholder="版本号">
+        <textarea name="changelog" class="form-control mb-2" placeholder="文件说明或更新记录"></textarea>
+        <input type="file" name="file" class="form-control" required>
+    </div>
+    `;
+
+    document.getElementById('new-versions').insertAdjacentHTML('beforeend', html);
+}
+</script>
+
+{% endblock %}

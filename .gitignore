@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+ENV/
+
+# Flask/local runtime
+.env
+.env.*
+!.env.example
+instance/
+*.log
+
+# Local database and uploaded user files
+database.db
+*.sqlite
+*.sqlite3
+uploads/
+
+# Build and cache output
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor and OS metadata
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
