@@ -6,17 +6,27 @@ from werkzeug.utils import secure_filename
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
+import secrets
 import shutil
 import uuid
+import warnings
 
 load_dotenv()
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
+
+# SECRET_KEY: auto-generate if not set, with a warning
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 if not app.config['SECRET_KEY']:
-    raise RuntimeError('SECRET_KEY environment variable is required.')
+    app.config['SECRET_KEY'] = secrets.token_hex(32)
+    warnings.warn(
+        "No SECRET_KEY set — using a randomly-generated key. "
+        "Set SECRET_KEY in your .env file for persistence across restarts.",
+        RuntimeWarning,
+        stacklevel=2,
+    )
 
 database_path = os.environ.get('DATABASE_PATH', os.path.join(BASE_DIR, 'database.db'))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
@@ -55,6 +65,10 @@ class FileVersion(db.Model):
     uploaded_at = db.Column(db.DateTime, server_default=db.func.now())
 
 
+# Auto-create database tables on startup
+with app.app_context():
+    db.create_all()
+
 
 def save_task_files(task_id, version_names, changelogs, files):
     task_folder = os.path.join(app.config['UPLOAD_FOLDER'], f'task_{task_id}')
@@ -88,20 +102,21 @@ def load_user(user_id):
 
 @app.route('/init')
 def init():
-    db.create_all()
+    # Guard: if already initialized, refuse to run again
+    if User.query.first():
+        return '已经初始化过了，如需重置请手动删除 database.db。', 400
 
     admin_username = os.environ.get('ADMIN_USERNAME')
     admin_password = os.environ.get('ADMIN_PASSWORD')
     if not admin_username or not admin_password:
         return '请先设置 ADMIN_USERNAME 和 ADMIN_PASSWORD 环境变量。', 500
 
-    if not User.query.filter_by(username=admin_username).first():
-        user = User(
-            username=admin_username,
-            password_hash=generate_password_hash(admin_password)
-        )
-        db.session.add(user)
-        db.session.commit()
+    user = User(
+        username=admin_username,
+        password_hash=generate_password_hash(admin_password)
+    )
+    db.session.add(user)
+    db.session.commit()
 
     return '初始化完成。'
 
@@ -214,12 +229,15 @@ def delete_task(task_id):
     task = UploadTask.query.get_or_404(task_id)
     task_folder = os.path.join(app.config['UPLOAD_FOLDER'], f'task_{task.id}')
 
-    FileVersion.query.filter_by(task_id=task.id).delete()
-    db.session.delete(task)
+    # Delete filesystem first — if this fails, DB records remain intact
     if os.path.isdir(task_folder):
         shutil.rmtree(task_folder)
 
+    # Then delete DB records
+    FileVersion.query.filter_by(task_id=task.id).delete()
+    db.session.delete(task)
     db.session.commit()
+
     flash('任务已删除')
     return redirect(url_for('index'))
 
